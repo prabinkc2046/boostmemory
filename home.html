@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadingTest</title>
+ <style>
+        *{
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body{
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 1.5vw;
+    
+}
+.item1{
+   
+    width: 80%;
+    margin: 0.5vw auto;
+    padding: 1vw;
+}
+
+.item1 p{
+    background-color: black;
+    padding: 1vw;
+    margin-bottom: 0.5vw;
+    border-radius: 10px;
+    border: none;
+    color: white;
+    font-size: 2.5vw;
+    
+}
+.item1 #readyBtn{
+    
+    border-radius: 10px;
+    border: none;
+    padding: 0.5vw;
+    margin-bottom: 0.5vw;
+    font-weight: 600;
+}
+.item2{
+    width: 80%;
+    margin: 0 auto;
+    /* background-color: red; */
+}
+.item2 p{
+    
+    font-weight: 700;
+    margin-left: 6vw;
+
+}
+.item2 #text{
+    width: 80%;
+    margin: 0.5vw 6vw 0.5vw 6vw;
+    background-color: green;
+    font-weight: 600;
+}
+.item2 #submitButton{
+    display: block;
+    margin: 0 0 0 6vw;
+}
+
+.footer{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.footer .item3{
+    
+    margin: 0 0 0 1vw;
+    padding: 0.5vw;
+}
+.footer .item3 #timerTitle{
+    
+    font-weight: 700;
+    margin: 0 0 .5vw 0;
+}
+.footer .item3 #timer{
+
+    font-weight: 900;
+    margin: 0 0 0.5vw 0;
+}
+.footer .item3 #hideTimer, .highlight{
+    margin: 0.5vw;
+    border-radius: 10px;
+    border: none;
+    padding: 0.8vw;
+    cursor: pointer;
+}
+.footer .item3 #hideTimer:hover{
+    background: blue;
+    color: white;
+}
+.footer .item4 {
+    margin: 0.5vw 0 0 1vw;
+    
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+}
+.footer .item4 .report-button{
+    display: flex;
+    justify-content: space-between;
+    
+}
+
+.footer .item4 #resetButton{
+    padding: 0.7vw;
+    border-radius: 10px;
+    border: none;
+}
+
+.footer .item4 .title{
+    margin-right: 5px;
+}
+
+    </style>
+    
+</head>
+<body>
+    <!-- Main container has two direct children header and footer -->
+    <div class="screen-container">
+        <!-- header container has two direct childer item1 and item1 -->
+        <div class="header">
+            <div class="item1" id="screen">
+                <p> Text Will Appear here! Lorem ipsum dolor sit amet.</p>
+                <button id="readyBtn" class="screen-readybtn counter readyBtn highlight green resetTime">Get New Sentence</button>
+            </div>
+            <div class="item2">
+                <p>Type Here!</p>
+                <form >
+                <textarea name="" id="text" class="counter textarea highlight yellow changeBackgroundColor fixingcount" cols="36" rows="5"></textarea> 
+                <input type="button" id="submitButton" class="highlight blue disable countingMethod"  value="submit">
+                </form>
+            </div>
+        </div>
+        <!-- header contaienr ends here and footer container starts -->
+
+        <!-- footer has 2 direct childer item3 and item4 -->
+        <div class="footer">
+            
+            <div class="item3">
+                <p id="timerTitle">Timer</p>
+                <p id="timer">0</p>
+                <button id="hideTimer">Hide</button>
+                <button class="highlight resetTime">Reset Timer</button>
+            </div>
+            
+            <div class="item4">
+                <p>Your Progress</p>
+                
+                    <div class="report-button"><span class="title">Total</span><button id="total">0</button></div>
+                    <div class="report-button"><span class="title">Correct</span><button id="right" >0</button></div>
+                    <div class="report-button"><span class="title">Incorrect</span><button id="wrong">0</button></div>
+                    <div class="report-button"><button id="resetButton">Reset</button></div>
+                
+            </div>
+        </div>
+    </div>
+
+
+</body>
+<script>
+     
+
+    //API call
+    const endPoint = "https://icanhazdadjoke.com/"
+    const init = {
+        headers: {
+            'accept':'application/json',
+        }
+    };
+    async function getJoke(){
+        const response = await fetch(endPoint,init);
+        const jokeObj = await response.json();
+        let chunk = jokeObj.joke;
+        localStorage.setItem('chunk', chunk);
+        let value = localStorage.getItem('chunk');
+        return value;
+    }
+    
+    // setting buttons and text value on the screen
+    const readyBtn = document.querySelector(".header .item1 #readyBtn");
+    const screen = document.querySelector(".header .item1 p");
+    const clickButton = document.querySelector('.header .item2 #submitButton');
+    const resetBtn = document.querySelector('.footer .item4 #resetButton');
+    const textArea = document.querySelector('.header .item2 #text');
+    const rightBtn = document.querySelector('.footer .item4 #right');
+    const wrongBtn = document.querySelector('.footer .item4 #wrong');
+    const totalBtn = document.querySelector('.footer .item4 #total');
+    const hideTimerBtn = document.querySelector('.footer .item3 #hideTimer');
+    const displayTimer = document.querySelector('.footer .item3 #timer'); 
+    
+    let textValue = textArea.value;
+    let textValueTrimmedLowered = textValue;
+    let currDisplayedValue = localStorage.getItem('chunk');
+    
+    
+    // disabling submit button by default
+    //enabling submit button when user actually start typing
+    //this is to avoid getting points counted for no actual input
+    document.addEventListener('DOMContentLoaded', () => {
+        clickButton.disabled = true;
+        textArea.addEventListener('keyup', ()=> {
+            clickButton.disabled = false;
+        })
+    });
+    // To set counter to zero when ready button is clicked.
+    
+    
+    
+    //...............................***..................................
+    //when button is clicked to display content
+    //a new verse will show in the screen and disppear in 5 seconds
+    
+    
+    
+    
+    
+    function hideVerse(){
+        screen.style.visibility = 'hidden';
+        readyBtn.style.visibility = 'visible';
+    }
+    function countWord(){
+        let verse = screen.textContent;
+        
+        let wordCount = verse.split(' ').length;
+        if (wordCount < 10){
+            readingTime = 3000;
+            window.setTimeout(hideVerse,readingTime);
+            
+            
+            
+        } else if(wordCount < 20){
+            readingTime = 6000;
+            window.setTimeout(hideVerse,readingTime);
+            
+            
+        } else if( wordCount < 30000){
+            readingTime = 10000;
+            window.setTimeout(hideVerse,readingTime);
+            
+        } else {
+            readingTime = 20000;
+            window.setTimeout(hideVerse,readingTime);
+            
+        }
+    }
+    async function showJoke(){
+        
+        let readingTime = 5000;
+        if (screen.style.visibility === 'hidden'){
+            screen.innerHTML = await getJoke();
+            screen.style.visibility = 'visible';
+            readyBtn.style.visibility = 'hidden';
+            countWord();// count the word in verse and set the reading time.  
+        } else {
+            screen.innerHTML = await getJoke();
+            readyBtn.style.visibility = 'hidden';
+            countWord();  
+        }
+        
+        
+    }
+    readyBtn.addEventListener('click', showJoke);
+    
+    
+    
+    
+    // ...*......*...........*...............*..............*..........
+    
+    function count(){
+        
+        if (localStorage.getItem('total')){
+            let totalNum = localStorage.getItem('total');
+            totalBtn.style.color= "blue";
+            totalBtn.style.fontSize = "large";
+            totalBtn.innerHTML = totalNum;
+            totalBtn.innerHTML = ++totalNum;
+            localStorage.setItem('total', totalNum);
+        } else {
+            localStorage.setItem('total', 0);
+            let totalNum = localStorage.getItem('total');
+            totalBtn.style.color= "blue";
+            totalBtn.style.fontSize = "large";
+            totalBtn.innerHTML = totalNum;
+            totalBtn.innerHTML = ++totalNum;
+            localStorage.setItem('total', totalNum);
+        }
+    }
+    
+     function updatePoints() {
+        rightBtn.innerHTML = localStorage.getItem('rightValue');
+        wrongBtn.innerHTML = localStorage.getItem('wrongValue');
+        // counting total number of attempts.
+        count();
+        textValue = textArea.value;
+        textValueTrimmedLowered = textValue.trim().toLowerCase().split("");
+        let arrayedTextValue = textValueTrimmedLowered.filter(item => {
+            return !item.includes("'") && !item.includes("-")
+        })
+        let stringifiedTextValue = arrayedTextValue.toString();
+        currDisplayedValue = localStorage.getItem('chunk').trim().toLowerCase().split("");
+        let arrayedDisplayedValue = currDisplayedValue.filter(item => {
+            return !item.includes("'") && !item.includes("-")
+        })
+        let stringifiedDisplayedValue = arrayedDisplayedValue.toString();
+    
+        if (stringifiedTextValue === stringifiedDisplayedValue){
+    
+            if (localStorage.getItem('rightValue')){
+                let numOfRight = localStorage.getItem('rightValue');
+                rightBtn.style.color = "green";
+                rightBtn.style.fontSize = "large";
+                rightBtn.innerHTML = numOfRight;
+                rightBtn.innerHTML = ++numOfRight;
+                localStorage.setItem('rightValue', numOfRight);
+            } else{
+                localStorage.setItem('rightValue', 0);
+                let numOfRight = localStorage.getItem('rightValue');
+                rightBtn.style.color = "green";
+                rightBtn.style.fontSize = "large";
+                rightBtn.innerHTML = ++numOfRight;
+            }
+            
+            
+            
+                
+        } else if (stringifiedTextValue !== stringifiedDisplayedValue) {
+            if (localStorage.getItem('wrongValue')){
+                let numOfWrong = localStorage.getItem('wrongValue');
+                wrongBtn.style.color = "red";
+                wrongBtn.style.fontSize = "large";
+                wrongBtn.innerHTML = numOfWrong;
+                wrongBtn.innerHTML = ++numOfWrong;
+                localStorage.setItem('wrongValue',numOfWrong);
+            } else {
+                localStorage.setItem('wrongValue', 0);
+                let numOfWrong = localStorage.getItem('wrongValue');
+                wrongBtn.style.color = "red";
+                wrongBtn.style.fontSize = "large";
+                wrongBtn.innerHTML = numOfWrong;
+                wrongBtn.innerHTML = ++numOfWrong;
+                localStorage.setItem('wrongValue',numOfWrong);
+            }
+            
+        }
+        
+    
+        textArea.value = "";
+        textArea.style.backgroundColor = 'white';
+        clickButton.disabled = true;
+    }
+    
+    
+    
+    
+    resetBtn.addEventListener('click', () => {
+        localStorage.setItem('rightValue',0);
+        localStorage.setItem('wrongValue', 0);
+        localStorage.setItem('total', 0);
+        rightBtn.innerHTML = localStorage.getItem('rightValue');
+        wrongBtn.innerHTML = localStorage.getItem('wrongValue');
+        totalBtn.innerHTML = localStorage.getItem('total');
+    })
+    
+    
+    //change the background  color if typing is getting wrong/right.
+    function changeBackgroundColor(){
+        textValue = textArea.value;
+        textValueTrimmedLowered = textValue.trim().toLowerCase().split("");
+        let cleanedArray = textValueTrimmedLowered.filter(item => {
+            return !item.includes("'") && !item.includes("-")
+        })
+        let cleanedString = cleanedArray.toString();
+        currDisplayedValue = localStorage.getItem('chunk').trim().toLowerCase().split("");
+        let cleanedDisplayedArray = currDisplayedValue.filter(item => {
+            return !item.includes("'") && !item.includes("-")
+        })
+        let cleanedDisplayedText = cleanedDisplayedArray.toString();
+        
+        if (cleanedDisplayedText.includes(cleanedString) && cleanedString !== ''){
+            textArea.style.color = "green";
+        } else if (!cleanedDisplayedText.includes(cleanedString) && cleanedString !== ''){
+            textArea.style.color = 'red';
+        } else {
+            textArea.style.backgroundColor = 'black';
+        }  
+        
+        
+        
+        
+    }
+    
+    
+    
+    // keeping score visible when page is loaded or refreshed.
+    function showCurrentPoints(){
+        rightBtn.innerHTML = localStorage.getItem('rightValue');
+        wrongBtn.innerHTML = localStorage.getItem('wrongValue');
+        totalBtn.innerHTML = localStorage.getItem('total');
+    }
+    document.addEventListener('DOMContentLoaded', showCurrentPoints);
+    
+    
+    // when user starts writing, a timer will start.
+    //first start with building counter
+    const counter = {
+        currentCount: 0,
+        start: false,
+        stop: false,
+        timerID: 0,    
+    }
+    const checker = {
+        readyBtnClicked: false,
+        textAreaClicked: false,
+        
+    };
+    
+    function incrementByOne(){
+        let currentCount = counter.currentCount;
+        document.getElementById('timer').innerHTML = currentCount++;
+        counter.currentCount = currentCount;
+        counter.start = true;
+        
+    }
+    
+    function startTimer(){
+        if (counter.currentCount !== 0){
+            counter.currentCount = 0;
+            const timerID = setInterval(incrementByOne, 1000);
+            counter.timerID = timerID;
+        } else{
+            const timerID = setInterval(incrementByOne, 1000);
+            counter.timerID = timerID;
+        }
+         
+    }
+    function resetTime(){
+        counter.currentCount = 0;
+        counter.start = false;
+        counter.stop = false;
+        counter.timerID = 0;
+        document.querySelector('.footer .item3 #timer').innerHTML = counter.currentCount;
+    }
+    function stopTiming(){
+        if (counter.start === true){
+            timerID = counter.timerID;
+            clearInterval(timerID);
+        }
+    }
+    
+    
+    
+    
+    // under improvement now
+    // const counterAffectingButton = document.querySelectorAll('.counter');
+    // counterAffectingButton.forEach(function (btn){
+    //    btn.addEventListener('click', function(e){
+    //        const selectedBtn = e.currentTarget;
+    //        if (selectedBtn.classList.contains('readyBtn')){
+    //            if (checker.readyBtnClicked === false){
+    //                checker.readyBtnClicked = true;
+    //             } else if ( checker.readyBtnClicked === true){
+    //                 stopTiming();
+    //             } 
+    //         } else if( selectedBtn.classList.contains('textarea')){
+    //             if (checker.readyBtnClicked){
+    //                 startTimer();
+                
+    //             }
+    //         }
+    //    })
+    // })
+    
+    
+    clickButton.addEventListener('click', stopTiming);
+    
+    
+    
+    
+    
+    
+    ///when mouse is over, highlighting the buttons
+    /// also updating the point only when the user writes something.
+    // let readyButtonWasClicked = false;
+    const button = document.querySelectorAll('.highlight');
+    button.forEach(function (btn){
+    
+    btn.addEventListener('mouseover', function(event){
+        const myHighlighter = event.currentTarget;
+        if (myHighlighter.classList.contains('green')){
+            myHighlighter.style.backgroundColor = 'green';
+            myHighlighter.style.color= 'white';
+        } else if (myHighlighter.classList.contains('yellow')){
+            myHighlighter.style.backgroundColor = 'Gray';
+        } else{
+            myHighlighter.style.backgroundColor = 'blue';
+            myHighlighter.style.color = "white";
+        }
+        
+    });
+    btn.addEventListener('mouseout', function(event){
+       const noHighLighter = event.currentTarget;
+       noHighLighter.style.backgroundColor = 'white';
+       noHighLighter.style.color= "black";
+    });
+    
+    btn.addEventListener('click', function (event){
+        const counterChanger = event.currentTarget;
+        if (counterChanger.classList.contains('countingMethod')){
+            if (textArea.value){
+                updatePoints();
+                counterChanger.style.backgroundColor = 'white';
+                counterChanger.style.color = "black";
+            } else{
+                alert('Type in the field please.')
+            }
+        }
+        
+        
+    });
+    
+    btn.addEventListener('keyup', function(event){
+        const pressedElement = event.currentTarget;
+        if (pressedElement.classList.contains('changeBackgroundColor')){
+            changeBackgroundColor();
+        }
+        
+    });
+    
+    btn.addEventListener('click', function(event){
+        const btn = event.currentTarget;
+        if (btn.classList.contains('resetTime')){
+            resetTime();
+        }
+        if (btn.classList.contains('Zero')){
+            location.reload();
+        }
+          
+        
+    });
+    
+    btn.addEventListener('focus', function(event){
+        const focusedbtn = event.currentTarget;
+        
+        if (focusedbtn.classList.contains('fixingcount')){
+            startTimer();
+        }
+    btn.addEventListener('blur',function(event){
+        const blurredbtn = event.currentTarget;
+        if (blurredbtn.classList.contains('fixingcount')){
+            stopTiming();
+        }
+    })
+    });
+    
+    
+    
+    });
+    
+    // hide timer and show timer
+    //hideTimerBtn , displayTimer
+    displayTimer.style.visibility = "visible";
+    hideTimerBtn.textContent = "Hide Timer";
+    hideTimerBtn.addEventListener('click', function(){
+       
+        if (displayTimer.style.visibility === "hidden"){
+            displayTimer.style.visibility = "visible";
+            hideTimerBtn.textContent = "Hide Timer";
+        } else if (displayTimer.style.visibility === "visible"){
+            displayTimer.style.visibility = "hidden";
+            hideTimerBtn.textContent = "Show Timer";
+        }
+    })
+    
+    
+     </script>
+</html>
